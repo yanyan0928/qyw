@@ -19,4 +19,5 @@ bin-release/
 
 /vendor/
 composer.lock
+composer.phar
 
