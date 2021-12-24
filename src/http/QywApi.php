@@ -1,21 +1,12 @@
 <?php
 
 
-namespace CORP\Http;
+namespace CORP\http;
 
-use mysql_xdevapi\Exception;
+use ErrorException;
 
 class QywApi
 {
-    public $corpid = 'ww1422b795444cb44b93d';
-    //允许的应用凭证
-    private static $corpsecrets = [
-        1 => 'OnULdCxtSYOZZdy0ytaZcQ2244lQ_VFRcqW4MIcJmnVM4',//通讯录
-        2 => 'WDOFUKIAVGYoHw4qkp-gO0FUT44rHRY6yhGAh6N-Q56Xw',//OA-审批
-        3 => '72Khv9znQf8sdvp93D_hWtkdb44gjklBjw2wmE3XxSyTU',//自建应用
-    ];
-    
-    
     /**
      * 构造函数
      *
@@ -24,24 +15,12 @@ class QywApi
      *
      * @param string $corpid 企业ID
      * @param string $corpsecret 应用凭证
-     * @throws OssException
+     * @throws Exception
      */
-    public function __construct($secret_code)
+    public function __construct($corpid, $secret)
     {
-        $secret_code = trim($secret_code);
-        if (empty($this->corpid)) {
-            throw new Exception("access key id is empty");
-        }
-        if (empty($secret_code)) {
-            throw new Exception("access key secret is empty");
-        }
-        
-        if (!array_key_exists($secret_code, self::$corpsecrets)) {
-            $corpsecret = self::$corpsecrets[1];
-        }else{
-            $corpsecret = self::$corpsecrets[$secret_code];
-        }
-        $this->corpsecret = $corpsecret;
+        $this->corpid = $corpid;
+        $this->corpsecret = $secret;
     }
     
     /**
@@ -92,12 +71,10 @@ class QywApi
     public function getWxAccessToken(){
         $url ='https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid='.$this->corpid.'&corpsecret='.$this->corpsecret;
         $arr = $this->http_curl($url,'get','json');
-        if($arr["errcode"] == 0) return $arr['access_token'];
-        echo $arr['errmsg'];
-        exit;
+        return $arr;
     }
-
-
+    
+    
     
     /**
      * Created by PhpStorm.

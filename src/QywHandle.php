@@ -3,14 +3,24 @@
 
 namespace CORP;
 
-use CORP\Http\QywOss;
+use CORP\http\QywOss;
+use CORP\contants\CodeConst;
 
 class QywHandle
 {
-    public function __construct($secret_code = 1)
+    private $corpid;
+    private $secret;
+    public function __construct($corpid, $secret)
     {
-        $this->secret_code = $secret_code;
-        $this->client = QywOss::getInstance($secret_code)->client;
+        $this->secret = $secret;
+        $this->corpid = $corpid;
+        if (empty($this->corpid)) {
+            throw new \Exception("access key id is empty");
+        }
+        if (empty($this->secret)) {
+            throw new \Exception("access key secret is empty");
+        }
+        return $this->client = QywOss::getInstance($this->corpid, $this->secret)->client;
     }
     
     /**
@@ -39,7 +49,7 @@ class QywHandle
      */
     public function getAuditDetail($sp_no)
     {
-        $access_token = $this->getWxAccessToken($this->secret_code);
+        $access_token = $this->getWxAccessToken($this->secret);
         return $this->client->getAuditDetail($access_token, $sp_no);
     }
     
@@ -53,7 +63,7 @@ class QywHandle
      */
     public function getTemplateDetail($template_id)
     {
-        $access_token = $this->getWxAccessToken($this->secret_code);
+        $access_token = $this->getWxAccessToken($this->secret);
         return $this->client->getTemplateDetail($access_token, $template_id);
     }
     
@@ -67,16 +77,20 @@ class QywHandle
      */
     public function getWxAccessToken(){
         //这里使用session来暂时保存access_token，可以使用mysql数据库来保存数据
-        if(isset($_SESSION['access_token_'.$this->secret_code]) && isset($_SESSION['expires_in_'.$this->secret_code])
-                && $_SESSION['expires_in_'.$this->secret_code]-time()>0 ){
+        if(isset($_SESSION['access_token_'.$this->secret]) && isset($_SESSION['expires_in_'.$this->secret])
+                && $_SESSION['expires_in_'.$this->secret]-time()>0 ){
             //如果缓存中已经存在了access_token，并且没有过期，可以直接取用就行
-            return $_SESSION['access_token_'.$this->secret_code];
+            return $_SESSION['access_token_'.$this->secret];
         }else{
-            $access_token = $this->client->getWxAccessToken();
-            $_SESSION['access_token_'.$this->secret_code] = $access_token;
-            $_SESSION['expires_in_'.$this->secret_code] = time() + 7200;
-            //也可写入数据库
-            return $access_token;
+            $info = $this->client->getWxAccessToken();
+            if($info["errcode"] == 0){
+                $access_token = $info['access_token'];
+                $_SESSION['access_token_'.$this->secret] = $access_token;
+                $_SESSION['expires_in_'.$this->secret] = time() + 7200;
+                //也可写入数据库
+                return $access_token;
+            };
+            return CodeConst::$access_token_Error;
         }
     }
     
@@ -90,7 +104,7 @@ class QywHandle
      */
     public function getJsApiTicket(){
         if($_SESSION['jsapi_ticket'] && ($_SESSION['jsapi_ticket_expires_in']-time()>0) ){
-            //如果缓存中已经存在了access_token，并且没有过期，可以直接取用就行
+            //如果缓存中已经存在了access_token，并且没有过期，可以直接取用就行\
             return $_SESSION['jsapi_ticket'];
         }else{
             $access_token = $this->getWxAccessToken();
